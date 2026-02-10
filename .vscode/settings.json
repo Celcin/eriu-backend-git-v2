@@ -1,0 +1,318 @@
+{
+        "editor.fontSize": 18,
+        "editor.lineHeight": 2.5,
+        "editor.tabSize": 8,
+	"editor.fontFamily": "Victor Mono",
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false,
+        "editor.codeLens": false,
+        "editor.minimap.enabled": false,
+        "editor.unicodeHighlight.nonBasicASCII": false,
+        "editor.renderLineHighlight":"none",
+        "files.autoSave": "afterDelay",
+        "editor.allowVariableFontsInAccessibilityMode": true,
+        "editor.autoClosingBrackets": "always",
+        "editor.autoClosingComments": "always",
+        "editor.autoClosingQuotes": "always",
+        "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+        "editor.letterSpacing": 0,
+        "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08'",
+
+        "workbench.colorCustomizations":
+        {
+                "editorGroupHeader.noTabsBackground": "#3a3a3a",
+                "editorGroupHeader.tabsBackground": "#3a3a3a",
+                "editorGroupHeader.tabsBorder": "#000000",
+		"editor.foldBackground": "#bc2b2b40",
+                "editorLineNumber.foreground": "#F07F09",
+                "editorLineNumber.activeForeground": "#62edff",
+		"editor.background": "#3a3a3a",
+
+		"titleBar.activeBackground": "#220202d2",
+		"titleBar.activeForeground": "#ffffff",
+		"titleBar.inactiveBackground": "#bc2b2b40",
+		"titleBar.inactiveForeground": "#ffffff",
+				
+		"tab.activeBackground": "#368a99",
+                "tab.activeForeground": "#000000",
+                "tab.border": "#000000",
+                "tab.activeBorder": "#000000",
+                "tab.inactiveBackground": "#6a5a7c",
+                "tab.inactiveForeground": "#000000",
+                "tab.hoverBackground": "#0be1e9",
+                "tab.unfocusedHoverBackground": "#000000",
+                "tab.hoverBorder": "#000000",
+                "tab.unfocusedHoverBorder": "#000000",
+                "activityBar.inactiveForeground": "#F07F09",
+                "sideBar.background": "#3a3a3a",
+                "activityBar.background": "#3a3a3a",
+
+        },
+
+        "editor.tokenColorCustomizations":
+        {
+                "textMateRules":
+                [
+                        {
+                                "scope": "heading.1.markdown entity.name.section.markdown",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold",
+                                },
+                        },
+                        {
+                                "scope": "heading.2.markdown entity.name.section.markdown",
+                                "settings":
+                                {
+                                        "foreground": "#0bd8f3",
+                                        "fontStyle": ""
+                                },
+                        },
+                        {
+                                "scope": "heading.3.markdown entity.name.section.markdown",
+                                "settings":
+                                {
+                                        "foreground": "#ff5df1",
+                                        "fontStyle": "italic"
+                                },
+                        },
+			{
+                                "scope": "heading.4.markdown entity.name.section.markdown",
+                                "settings":
+                                {
+                                        "foreground": "#f0ba72",
+                                        "fontStyle": "italic"
+                                },
+                        },
+                        {
+                                "scope":"punctuation.definition.heading.markdown",
+                                "settings":
+                                {
+                                        "foreground": "#3a3a3a",
+                                },
+                        },
+
+
+                        {
+                                "scope": "support.type.property-name.json.comments",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "support.type.property-name.json",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "string.quoted.double.json",
+                                "settings":
+                                {
+                                        "foreground": "#e3ecec"
+                                }
+                        },
+
+
+                        {
+                                "scope": "entity.name.function.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#0bd8f3",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "storage.type.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "punctuation.section.group.end.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "punctuation.section.group.begin.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#a3f026",
+                                        "fontStyle": "bold"
+                                }
+                        },
+                        {
+                                "scope": "variable.other.readwrite.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#ff5df1",
+                                         "fontStyle": "bold"
+
+                                },
+                        },
+                        {
+                                "scope": "comment.line.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#d0dbdb",
+                                        "fontStyle": "italic"
+                                }
+                        },
+                        {
+                                "scope": "comment.block.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#d0dbdb",
+                                        "fontStyle": "italic"
+                                }
+                        },
+                        {
+                                "scope": "keyword.control.powershell",
+                                "settings":
+                                {
+                                        "foreground": "#e3f115",
+                                        "fontStyle": "italic bold"
+                                }
+                        }
+                ]
+        },
+
+
+        // Terminal font and appearance
+        "terminal.integrated.fontFamily": "'Victor Mono'",
+        "terminal.integrated.fontSize": 12,
+        "terminal.integrated.fontWeight": "normal",
+        "terminal.integrated.fontWeightBold": "bold",
+        "terminal.integrated.letterSpacing": 0,
+        "terminal.integrated.lineHeight": 1.2,
+
+        // Shell and PowerShell configuration
+        "powershell.powerShellAdditionalExePaths":
+        {
+                "PowerShell 7": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"",
+                "WIndows PowerShell": "\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\""
+        },
+        "powershell.powerShellDefaultVersion": "PowerShell 7",
+        "terminal.integrated.enableMultiLinePasteWarning": "never",
+
+        "[markdown]":
+        {
+                "editor.wordWrap": "off"
+        },
+
+        "[json]":
+        {
+                "editor.quickSuggestions":
+                {
+                        "strings": true
+                },
+                "editor.suggest.insertMode": "replace",
+                "editor.tabSize": 8,
+                "editor.insertSpaces": false,
+                "editor.detectIndentation": false,
+        },
+
+        "[php]":
+        {
+                "editor.suggest.insertMode": "replace",
+                "editor.tabSize": 8,
+                "editor.insertSpaces": false,
+                "editor.detectIndentation": false,
+        },
+
+        "[plaintext]":
+        {
+                "editor.unicodeHighlight.ambiguousCharacters": false,
+                "editor.unicodeHighlight.invisibleCharacters": false,
+                "editor.lineHeight": 2
+        },
+
+	"[yaml]":
+	{
+		"editor.insertSpaces": true,
+		"editor.tabSize": 2,
+		"editor.autoIndent": "full"
+	},
+
+        "explorer.confirmPasteNative": false,
+	"workbench.editor.empty.hint": "hidden",
+	"files.autoSaveDelay": 60000,
+	"terminal.integrated.defaultProfile.windows": "Ubuntu24-Clean (WSL)",
+	"terminal.integrated.profiles.windows":
+	{
+		"Ubuntu24-Clean (WSL)":
+		{
+			"path": "wsl.exe",
+			"args": ["-d", "Ubuntu24-Clean"]
+		},
+		"Ubuntu24 (WSL)":
+		{
+			"path": "wsl.exe",
+			"args": ["-d", "Ubuntu24"]
+		},
+		"Ubuntu (WSL)":
+		{
+			"path": "wsl.exe",
+			"args": ["-d", "Ubuntu"]
+		},
+	},
+	"terminal.integrated.profiles.linux":
+	{
+		"bash":
+		{
+			"path": "bash",
+			"args": ["-l"],
+			"cwd": "/home/hoerster"
+		}
+	},
+	"claudeCode.preferredLocation": "panel",
+	"ltex.dictionary":
+	{
+		"en-US":
+		[
+			"FrankenPHP",
+			"FRANKENPHP",
+			"Redis",
+			"Gotenberg",
+			"phpredis",
+			"eriu-backend-git",
+			"php",
+			"XDEBUG",
+			"redis",
+			"gotenberg",
+			"REDIS",
+			"GOTENBERG",
+			"dunglas/frankenphp:1-php8.X",
+			"wsl",
+			"systemd",
+			"SYSTEMD",
+			"mkcert",
+			"MKCERT",
+			"CADDYFILE",
+			"frankenphp",
+			"Caddyfile",
+			"ENTRYPOINT",
+			"vscode",
+			"json",
+			"gitignore",
+			"GITIGNORE"
+		],
+		"de":
+		[
+			"FrankenPHP",
+			"Redis",
+			"Gotenberg",
+			"phpredis"
+		]
+	},
+}

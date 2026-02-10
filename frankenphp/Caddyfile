@@ -1,0 +1,188 @@
+# =============================================================================
+# CADDYFILE FOR FRANKENPHP REST API BACKEND
+# Optimized for Symfony 8 + API Platform - JSON responses only
+# No static file serving, no Mercure, no Vulcain
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# GLOBAL OPTIONS
+# -----------------------------------------------------------------------------
+{
+    # Admin API on port 2019 for health checks and metrics
+    # Your healthcheck uses: curl -f http://localhost:2019/metrics
+    admin :2019
+
+    # Trust Docker network proxies for X-Forwarded-* headers
+    servers {
+        trusted_proxies static private_ranges
+        metrics
+    }
+
+    # Global logging to stderr for Docker
+    log {
+        output stderr
+        format json
+        level INFO
+    }
+
+    # FrankenPHP worker configuration
+    # Override via FRANKENPHP_CONFIG env var in production
+    frankenphp {
+        {$FRANKENPHP_CONFIG}
+    }
+
+    # Skip trust store installation in Docker
+    skip_install_trust
+}
+
+# -----------------------------------------------------------------------------
+# REUSABLE SNIPPETS
+# -----------------------------------------------------------------------------
+
+# CORS handling for REST APIs
+(cors) {
+    @cors_preflight method OPTIONS
+    @cors header Origin {args[0]}
+
+    # Handle OPTIONS preflight
+    handle @cors_preflight {
+        header {
+            Access-Control-Allow-Origin "{args[0]}"
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-Requested-With"
+            Access-Control-Allow-Credentials "true"
+            Access-Control-Max-Age "86400"
+            defer
+        }
+        respond "" 204
+    }
+
+    # Handle actual CORS requests
+    handle @cors {
+        header {
+            Access-Control-Allow-Origin "{args[0]}"
+            Access-Control-Allow-Credentials "true"
+            Access-Control-Expose-Headers "Content-Length, X-Total-Count, Link"
+            defer
+        }
+    }
+}
+
+# Security headers for JSON APIs
+(api_security_headers) {
+    header {
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Prevent framing (not needed for API)
+        X-Frame-Options "DENY"
+
+        # HSTS - enforce HTTPS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Restrictive CSP for JSON-only responses
+        Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Disable tracking features
+        Permissions-Policy "interest-cohort=()"
+
+        # Remove server identification header
+        -Server
+    }
+}
+
+# JSON error response handler
+(json_errors) {
+    handle_errors {
+        header Content-Type "application/problem+json"
+        respond `{"type":"about:blank","title":"Error","status":{err.status_code},"detail":"{err.message}"}` {err.status_code}
+    }
+}
+
+# -----------------------------------------------------------------------------
+# MAIN API SITE
+# -----------------------------------------------------------------------------
+{$SERVER_NAME:localhost} {
+    # Import security headers
+    import api_security_headers
+
+    # Import CORS - add your allowed origins
+    # import cors https://frontend.example.com
+    # import cors https://admin.example.com
+
+    # Import JSON error handling
+    import json_errors
+
+    # Document root
+    root * /app/public
+
+    # Compression for JSON responses (zstd preferred, gzip fallback)
+    encode {
+        zstd
+        gzip 5
+        minimum_length 256
+    }
+
+    # Access logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json {
+            time_format iso8601
+        }
+    }
+
+    # -------------------------------------------------------------------------
+    # HEALTH ENDPOINTS (handled by Caddy, not PHP)
+    # -------------------------------------------------------------------------
+    respond /health 200 {
+        body `{"status":"ok"}`
+        close
+    }
+    respond /livez 200
+    respond /readyz 200
+
+    # -------------------------------------------------------------------------
+    # ROBOTS.TXT - Disallow all crawling for API
+    # -------------------------------------------------------------------------
+    handle /robots.txt {
+        header Content-Type "text/plain"
+        respond "User-agent: *\nDisallow: /" 200
+    }
+
+    # -------------------------------------------------------------------------
+    # REQUEST ID INJECTION
+    # -------------------------------------------------------------------------
+    # Add correlation ID if not present (useful for distributed tracing)
+    @no_request_id not header X-Request-ID *
+    request_header @no_request_id X-Request-ID {uuid}
+
+    # -------------------------------------------------------------------------
+    # REQUEST SIZE LIMITS
+    # -------------------------------------------------------------------------
+    # Larger limit for file upload endpoints
+    handle /api/*/upload* {
+        request_body {
+            max_size 72MB
+        }
+        php_server
+    }
+
+    # Default limit for regular API endpoints
+    request_body {
+        max_size 2MB
+    }
+
+    # -------------------------------------------------------------------------
+    # PHP HANDLING
+    # -------------------------------------------------------------------------
+    # Route all requests to FrankenPHP
+    # file_server is implicitly disabled when not declared
+    php_server
+}

@@ -1,15 +1,29 @@
-# Single docker-compose.yml for dev, staging, and production
-# Usage: 
+# =============================================================================
+# ERIU-BACKEND - SINGLE DOCKER COMPOSE FILE FOR ALL ENVIRONMENTS
+# =============================================================================
+#
+# Usage:
 #   Development: docker compose --profile dev up
-#   Staging:     docker compose --profile staging up  
+#   Staging:     docker compose --profile staging up
 #   Production:  docker compose --profile prod up
-# Or set COMPOSE_PROFILES=dev in your .env file
+#
+# Or set COMPOSE_PROFILES=dev in your .env file and just run:
+#   docker compose up -d
+#
+# Inspect active configuration:
+#   docker compose --profile info run --rm eriu-backend-env-info
 
 name: eriu-backend
 
-# ============================================================================
-# YAML Anchors for shared configuration
-# ============================================================================
+
+# =============================================================================
+# YAML ANCHORS FOR SHARED CONFIGURATION
+# =============================================================================
+
+
+# Shared PHP/FrankenPHP settings inherited by all environment-specific
+# service definitions via the YAML merge key (<<: *php-common).
+
 x-php-common: &php-common
   restart: unless-stopped
   ports:
@@ -26,27 +40,29 @@ x-php-common: &php-common
     eriu-backend-gotenberg:
       condition: service_healthy
   environment:
-    # Core Symfony configuration
+    # --- Core Symfony Configuration ---
     APP_ENV: ${APP_ENV:-dev}
     APP_SECRET: ${APP_SECRET:?APP_SECRET is required}
     APP_DEBUG: ${APP_DEBUG:-1}
-    
-    # FrankenPHP/Caddy configuration
+
+    # --- FrankenPHP / Caddy ---
     SERVER_NAME: ${SERVER_NAME:-localhost}
     FRANKENPHP_CONFIG: ${FRANKENPHP_CONFIG:-}
     TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
     TRUSTED_HOSTS: ${TRUSTED_HOSTS:-^localhost|php$$}
-    
-    # Database connection
-    DATABASE_URL: "mysql://${MYSQL_USER:-eriu}:${MYSQL_PASSWORD:?MYSQL_PASSWORD required}@eriu-backend-mysql:3306/${MYSQL_DATABASE:-eriu}?serverVersion=${MYSQL_VERSION:-8.4}&charset=utf8mb4"
-    
-    # Redis connection
+
+    # --- Database (Doctrine DBAL) ---
+    # serverVersion must match the MySQL major.minor version exactly.
+    # Doctrine uses MySQL80Platform for all MySQL 8.0+ including 9.x.
+    DATABASE_URL: "mysql://${MYSQL_USER:-eriu}:${MYSQL_PASSWORD:?MYSQL_PASSWORD required}@eriu-backend-mysql:3306/${MYSQL_DATABASE:-eriu}?serverVersion=${MYSQL_VERSION:-9.6}&charset=utf8mb4"
+
+    # --- Redis ---
     REDIS_URL: "redis://eriu-backend-redis:6379"
-    
-    # Gotenberg connection
+
+    # --- Gotenberg ---
     GOTENBERG_URL: "http://eriu-backend-gotenberg:3000"
-    
-    # Mail configuration (points to Mailpit in dev/staging)
+
+    # --- Mail (points to Mailpit in dev/staging) ---
     MAILER_DSN: ${MAILER_DSN:-smtp://eriu-backend-mailpit:1025}
   healthcheck:
     test: ["CMD", "curl", "-f", "http://localhost/health"]
@@ -55,22 +71,34 @@ x-php-common: &php-common
     retries: 3
     start_period: 30s
 
+# Caddy TLS certificate and runtime state volumes shared by all PHP services.
+
 x-php-volumes-common: &php-volumes-common
   - caddy_data:/data
   - caddy_config:/config
+
+# Xdebug environment variables shared by dev and staging PHP services.
 
 x-debug-env: &debug-env
   XDEBUG_MODE: ${XDEBUG_MODE:-off}
   XDEBUG_CONFIG: "client_host=host.docker.internal"
   XDEBUG_SESSION: ${XDEBUG_SESSION:-PHPSTORM}
 
-# ============================================================================
-# Services
-# ============================================================================
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+
 services:
-  # --------------------------------------------------------------------------
-  # PHP/FrankenPHP - Development (with bind mounts and Xdebug)
-  # --------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------------
+  # PHP / FrankenPHP - Development
+  # ---------------------------------------------------------------------------
+  # Bind-mounts the project root for live editing. Xdebug available.
+  # Worker mode DISABLED (FRANKENPHP_CONFIG="") so file changes take effect
+  # immediately via the --watch flag in the Dockerfile CMD.
+
   eriu-backend-php:
     <<: *php-common
     container_name: eriu-backend-php
@@ -81,14 +109,16 @@ services:
       target: frankenphp_dev
     volumes:
       - ./:/app:cached
-      - ./docker/frankenphp/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./docker/frankenphp/conf.d/app.dev.ini:/usr/local/etc/php/app.conf.d/app.dev.ini:ro
-      - *php-volumes-common
+      - caddy_data:/data
+      - caddy_config:/config
     environment:
       <<: [*debug-env]
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-1}
       FRANKENPHP_CONFIG: ""
+      # Force worker restart after each request so Xdebug breakpoints
+      # propagate without a full container restart.
+      FRANKENPHP_LOOP_MAX: "1"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     tty: true
@@ -102,9 +132,12 @@ services:
       eriu-backend-mailpit:
         condition: service_healthy
 
-  # --------------------------------------------------------------------------
-  # PHP/FrankenPHP - Staging (pre-built image, with debugging tools)
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # PHP / FrankenPHP - Staging
+  # ---------------------------------------------------------------------------
+  # Pre-built image only (no bind mounts). Xdebug and Mailpit available.
+  # Worker mode ENABLED for realistic performance testing.
+
   eriu-backend-php-staging:
     <<: *php-common
     container_name: eriu-backend-php
@@ -129,9 +162,11 @@ services:
       eriu-backend-mailpit:
         condition: service_healthy
 
-  # --------------------------------------------------------------------------
-  # PHP/FrankenPHP - Production (pre-built image, no debugging)
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # PHP / FrankenPHP - Production
+  # ---------------------------------------------------------------------------
+  # Pre-built image only. No debugging tools. No tty (enables JSON logs).
+
   eriu-backend-php-prod:
     <<: *php-common
     container_name: eriu-backend-php
@@ -142,14 +177,20 @@ services:
       APP_ENV: prod
       APP_DEBUG: "0"
       FRANKENPHP_CONFIG: "worker ./public/index.php"
-    # No tty in production - enables JSON logs
-    # No extra_hosts - no Xdebug needed
 
-  # --------------------------------------------------------------------------
-  # MySQL Database
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # MySQL 9.6 Database
+  # ---------------------------------------------------------------------------
+  # MySQL 9.x removed the --default-authentication-plugin option entirely.
+  # The default authentication method remains caching_sha2_password.
+  # The mysql_native_password plugin is also removed in 9.x - all accounts
+  # must use caching_sha2_password or another supported plugin.
+  #
+  # The container_aware=ON option (new in 9.6) is set in docker/mysql/conf.d/
+  # custom.cnf and enables automatic detection of Docker CPU/memory limits.
+
   eriu-backend-mysql:
-    image: mysql:${MYSQL_VERSION:-8.4}
+    image: mysql:${MYSQL_VERSION:-9.6}
     container_name: eriu-backend-mysql
     restart: unless-stopped
     ports:
@@ -163,22 +204,22 @@ services:
       MYSQL_USER: ${MYSQL_USER:-eriu}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD required}
       TZ: ${TZ:-UTC}
-    command: >
-      --default-authentication-plugin=caching_sha2_password
+    command: >-
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
     networks:
       - eriu-network
 
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # Redis Cache
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+
   eriu-backend-redis:
     image: redis:${REDIS_VERSION:-8.4-alpine}
     container_name: eriu-backend-redis
@@ -187,7 +228,7 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    command: >
+    command: >-
       redis-server
       --appendonly yes
       --maxmemory ${REDIS_MAXMEMORY:-256mb}
@@ -201,9 +242,10 @@ services:
     networks:
       - eriu-network
 
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # Gotenberg PDF Generator
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+
   eriu-backend-gotenberg:
     image: gotenberg/gotenberg:${GOTENBERG_VERSION:-8}
     container_name: eriu-backend-gotenberg
@@ -224,9 +266,10 @@ services:
     networks:
       - eriu-network
 
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # Mailpit Email Testing (dev and staging only)
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+
   eriu-backend-mailpit:
     image: axllent/mailpit:${MAILPIT_VERSION:-v1.29}
     container_name: eriu-backend-mailpit
@@ -239,21 +282,17 @@ services:
       MP_DATABASE: /data/mailpit.db
       MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-500}
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
       TZ: ${TZ:-UTC}
     volumes:
       - mailpit_data:/data
-    healthcheck:
-      test: ["/mailpit", "readyz"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     networks:
       - eriu-network
 
-  # --------------------------------------------------------------------------
-  # Environment Info Service (debugging - shows active configuration)
-  # --------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Environment Info (debugging - shows active configuration)
+  # ---------------------------------------------------------------------------
+
   eriu-backend-env-info:
     image: alpine:3.19
     container_name: eriu-backend-env-info
@@ -262,18 +301,17 @@ services:
       sh -c 'echo "========================================";
              echo "ERIU-BACKEND ENVIRONMENT CONFIGURATION";
              echo "========================================";
-             echo "Active Profile: $${COMPOSE_PROFILES:-not set}";
-             echo "APP_ENV: $${APP_ENV:-not set}";
-             echo "APP_DEBUG: $${APP_DEBUG:-not set}";
-             echo "SERVER_NAME: $${SERVER_NAME:-not set}";
-             echo "MYSQL_VERSION: $${MYSQL_VERSION:-8.4}";
-             echo "REDIS_VERSION: $${REDIS_VERSION:-8.4-alpine}";
+             echo "Active Profile:    $${COMPOSE_PROFILES:-not set}";
+             echo "APP_ENV:           $${APP_ENV:-not set}";
+             echo "APP_DEBUG:         $${APP_DEBUG:-not set}";
+             echo "SERVER_NAME:       $${SERVER_NAME:-not set}";
+             echo "MYSQL_VERSION:     $${MYSQL_VERSION:-9.6}";
+             echo "REDIS_VERSION:     $${REDIS_VERSION:-8.4-alpine}";
              echo "GOTENBERG_VERSION: $${GOTENBERG_VERSION:-8}";
-             echo "MAILPIT_VERSION: $${MAILPIT_VERSION:-v1.29}";
-             echo "IMAGE_TAG: $${IMAGE_TAG:-not set}";
-             echo "DOCKER_REGISTRY: $${DOCKER_REGISTRY:-not set}";
-             echo "========================================";
-             echo "Run: docker compose --profile info run --rm eriu-backend-env-info"'
+             echo "MAILPIT_VERSION:   $${MAILPIT_VERSION:-v1.29}";
+             echo "IMAGE_TAG:         $${IMAGE_TAG:-not set}";
+             echo "DOCKER_REGISTRY:   $${DOCKER_REGISTRY:-not set}";
+             echo "========================================"'
     environment:
       COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
       APP_ENV: ${APP_ENV:-}
@@ -286,9 +324,12 @@ services:
       IMAGE_TAG: ${IMAGE_TAG:-}
       DOCKER_REGISTRY: ${DOCKER_REGISTRY:-}
 
-# ============================================================================
-# Volumes
-# ============================================================================
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+
 volumes:
   mysql_data:
     name: eriu-backend-mysql-data
@@ -301,9 +342,12 @@ volumes:
   mailpit_data:
     name: eriu-backend-mailpit-data
 
-# ============================================================================
-# Networks
-# ============================================================================
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+
+
 networks:
   eriu-network:
     name: eriu-backend-network

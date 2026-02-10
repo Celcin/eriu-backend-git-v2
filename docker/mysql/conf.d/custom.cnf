@@ -1,0 +1,135 @@
+# =============================================================================
+# MYSQL 9.6 DOCKER CONFIGURATION FOR SYMFONY REST API
+# =============================================================================
+# Location: docker/mysql/conf.d/custom.cnf
+# Mounted read-only into the container at /etc/mysql/conf.d/custom.cnf
+#
+# This file is loaded after the default my.cnf and overrides specific values.
+# Settings here are optimized for a containerized Symfony REST API backend
+# with moderate workloads. Adjust for production based on monitoring data.
+# =============================================================================
+
+
+[mysqld]
+
+# -----------------------------------------------------------------------------
+# Container Awareness (NEW in MySQL 9.6)
+# -----------------------------------------------------------------------------
+# Enables automatic detection of Docker CPU and memory cgroup limits.
+# Without this, MySQL sees the host's total resources rather than the
+# container's allocated share.
+
+container_aware = ON
+
+# When ON, MySQL automatically sizes innodb_buffer_pool_size, redo log
+# capacity and flush method based on detected memory. Manual overrides
+# below are only needed if auto-tuning produces unsuitable values.
+
+innodb_dedicated_server = ON
+
+# -----------------------------------------------------------------------------
+# Character Set and Collation
+# -----------------------------------------------------------------------------
+# utf8mb4 is required for full Unicode support (emojis, CJK, etc.).
+# utf8mb4_unicode_ci provides case-insensitive, accent-insensitive matching.
+#
+# MySQL 9.x defaults to utf8mb4_0900_ai_ci which uses Unicode 9.0 and NO PAD
+# semantics (trailing spaces are significant in comparisons). We explicitly set
+# utf8mb4_unicode_ci for predictable PAD SPACE behavior. Change to
+# utf8mb4_0900_ai_ci if you prefer the newer Unicode standard and NO PAD.
+
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+character-set-client-handshake = FALSE
+
+# -----------------------------------------------------------------------------
+# InnoDB Tuning
+# -----------------------------------------------------------------------------
+# innodb_dedicated_server auto-configures buffer_pool_size and redo_log_capacity.
+# The settings below tune aspects that auto-tuning does not cover.
+
+# Size of the in-memory log buffer. Larger values reduce disk I/O for
+# transaction-heavy workloads. 32M is generous for a REST API backend.
+innodb_log_buffer_size = 32M
+
+# 2 = flush log once per second instead of on every commit.
+# Slightly less durable (up to 1 second of data at risk on crash) but
+# significantly faster. Use 1 for maximum durability in production.
+innodb_flush_log_at_trx_commit = 2
+
+# Bypass the OS page cache for InnoDB data and log files. Reduces double
+# buffering (InnoDB buffer pool + OS cache) and lowers memory pressure.
+innodb_flush_method = O_DIRECT
+
+# -----------------------------------------------------------------------------
+# Connection Settings
+# -----------------------------------------------------------------------------
+# 151 is the MySQL default. For a REST API with connection pooling via Doctrine
+# this is more than sufficient. FrankenPHP worker mode keeps connections alive
+# across requests, so the active connection count stays low.
+
+max_connections = 151
+max_connect_errors = 100000
+wait_timeout = 28800
+
+# -----------------------------------------------------------------------------
+# Memory (per-connection buffers)
+# -----------------------------------------------------------------------------
+# These are allocated per connection/thread. Keep conservative to avoid
+# memory exhaustion under high concurrency.
+
+tmp_table_size = 64M
+max_heap_table_size = 64M
+sort_buffer_size = 2M
+join_buffer_size = 2M
+
+# MyISAM key buffer - minimal since we use InnoDB exclusively.
+key_buffer_size = 8M
+
+# -----------------------------------------------------------------------------
+# Binary Logging
+# -----------------------------------------------------------------------------
+# DISABLED for development and single-server deployments. Binary logs are
+# required for replication and point-in-time recovery. Enable in production
+# if either feature is needed:
+#   # binlog_format = ROW
+#   # binlog_expire_logs_seconds = 604800
+
+skip-log-bin
+
+# -----------------------------------------------------------------------------
+# Performance Schema
+# -----------------------------------------------------------------------------
+# DISABLED to save ~200MB of memory in development. Enable in production or
+# staging when profiling slow queries or analyzing wait events:
+#   # performance_schema = ON
+
+performance_schema = OFF
+
+# -----------------------------------------------------------------------------
+# Networking
+# -----------------------------------------------------------------------------
+# Bind to all interfaces (required for Docker inter-container communication).
+# skip-name-resolve avoids DNS lookups for client connections, speeding up
+# connection establishment.
+
+bind-address = 0.0.0.0
+skip-name-resolve
+
+# -----------------------------------------------------------------------------
+# Query Logging
+# -----------------------------------------------------------------------------
+# Log queries slower than 1 second. The slow query log file is inside the
+# data volume and persists across container restarts.
+
+slow_query_log = 1
+slow_query_log_file = /var/lib/mysql/slow.log
+long_query_time = 1
+
+
+[client]
+default-character-set = utf8mb4
+
+
+[mysql]
+default-character-set = utf8mb4
