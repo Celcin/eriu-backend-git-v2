@@ -19,12 +19,12 @@
 # 1. For commands that run INSIDE the PHP container:
 #
 #      my_command:
-#          $(DC) exec $(PHP_SVC) <your command here>
+#          $(EXEC) <your command here>
 #
 #    Example - run a custom script:
 #
 #      run_my_script:
-#          $(DC) exec $(PHP_SVC) php scripts/my-script.php
+#          $(EXEC) php scripts/my-script.php
 #
 # 2. For commands that run on the HOST (not in a container):
 #
@@ -39,7 +39,7 @@
 # 3. For commands that need ARGUMENTS passed through:
 #
 #      my_command:
-#          $(DC) exec $(PHP_SVC) some-binary $(ARGS)
+#          $(EXEC) some-binary $(ARGS)
 #
 #    Then call it as: make my_command arg1 arg2
 #
@@ -91,6 +91,7 @@ endif
 # Base Command and Service Names
 # -----------------------------------------------------------------------------
 
+EXEC = $(DC) exec -e PATH="/app/vendor/bin:$$PATH" -w /app $(PHP_SVC)
 DC = docker compose $(ENV_FILES) --profile $(PROFILE)
 
 # Service names (used by exec, run, logs)
@@ -135,7 +136,7 @@ fix_system_file_permissions:
 ## Fix git safe.directory warning inside container
 ## Usage: make fix_ownership_warning
 fix_ownership_warning:
-	$(DC) exec $(PHP_SVC) git config --global --add safe.directory /app
+	$(EXEC) git config --global --add safe.directory /app
 
 
 # =============================================================================
@@ -143,8 +144,7 @@ fix_ownership_warning:
 # =============================================================================
 
 .PHONY: start_containers start_php start_mysql start_redis start_gotenberg start_mailpit
-.PHONY: start_containers_with_debug start_php_with_debug start_mysql_with_debug
-.PHONY: start_redis_with_debug start_gotenberg_with_debug start_mailpit_with_debug
+.PHONY: start_containers_with_debug start_php_with_debug
 
 ## Start all containers
 ## Usage: make start_containers
@@ -185,26 +185,6 @@ start_containers_with_debug:
 ## Usage: make start_php_with_debug
 start_php_with_debug:
 	XDEBUG_MODE=debug,develop $(DC) up -d $(PHP_SVC)
-
-## Start MySQL container with debug logging
-## Usage: make start_mysql_with_debug
-start_mysql_with_debug:
-	XDEBUG_MODE=debug,develop $(DC) up -d $(MYSQL)
-
-## Start Redis container with debug logging
-## Usage: make start_redis_with_debug
-start_redis_with_debug:
-	XDEBUG_MODE=debug,develop $(DC) up -d $(REDIS)
-
-## Start Gotenberg container with debug logging
-## Usage: make start_gotenberg_with_debug
-start_gotenberg_with_debug:
-	XDEBUG_MODE=debug,develop $(DC) up -d $(GOTENBERG)
-
-## Start Mailpit container with debug logging
-## Usage: make start_mailpit_with_debug
-start_mailpit_with_debug:
-	XDEBUG_MODE=debug,develop $(DC) up -d $(MAILPIT)
 
 
 # =============================================================================
@@ -282,18 +262,18 @@ fresh:
 ##        make run_console_command doctrine:migrations:migrate
 ##        make run_console_command debug:router
 run_console_command:
-	$(DC) exec $(PHP_SVC) php bin/console $(ARGS)
+	$(EXEC) php bin/console $(ARGS)
 
 ## Run a Composer command
 ## Usage: make run_Symfony_command require symfony/mailer
 ##        make run_Symfony_command update
 run_Symfony_command:
-	$(DC) exec $(PHP_SVC) composer $(ARGS)
+	$(EXEC) composer $(ARGS)
 
 ## Clear the Symfony cache
 ## Usage: make clear_cache
 clear_cache:
-	$(DC) exec $(PHP_SVC) php bin/console cache:clear
+	$(EXEC) php bin/console cache:clear
 
 
 # =============================================================================
@@ -349,12 +329,12 @@ show_logs_mailpit:
 ## Show PHP version
 ## Usage: make show_php
 show_php:
-	$(DC) exec $(PHP_SVC) php -v
+	$(EXEC) php -v
 
 ## Show Symfony version
 ## Usage: make show_Symfony
 show_Symfony:
-	$(DC) exec $(PHP_SVC) php bin/console --version
+	$(EXEC) php bin/console --version
 
 ## Show MySQL version
 ## Usage: make show_mySQL
@@ -379,7 +359,7 @@ show_mailpit:
 ## Show Xdebug status
 ## Usage: make show_XDEBUG
 show_XDEBUG:
-	@$(DC) exec $(PHP_SVC) php -v | grep -i xdebug || echo "Xdebug is not enabled"
+	@$(EXEC) php -v | grep -i xdebug || echo "Xdebug is not enabled"
 
 ## Show Docker version (host)
 ## Usage: make show_Docker
@@ -411,17 +391,17 @@ verify_systemd:
 ## Show all installed packages
 ## Usage: make show_packages
 show_packages:
-	$(DC) exec $(PHP_SVC) composer show
+	$(EXEC) composer show
 
 ## Show only direct dependencies
 ## Usage: make show_direct_packages
 show_direct_packages:
-	$(DC) exec $(PHP_SVC) composer show --direct
+	$(EXEC) composer show --direct
 
 ## Show outdated packages
 ## Usage: make show_outdated_packages
 show_outdated_packages:
-	$(DC) exec $(PHP_SVC) composer outdated
+	$(EXEC) composer outdated
 
 
 # =============================================================================
@@ -434,13 +414,13 @@ show_outdated_packages:
 ## Usage: make install symfony/mailer
 ##        make install symfony/orm-pack
 install:
-	$(DC) exec $(PHP_SVC) composer require $(ARGS)
+	$(EXEC) composer require $(ARGS)
 
 ## Install a package as dev dependency
 ## Usage: make install_for_dev phpunit/phpunit
 ##        make install_for_dev symfony/debug-bundle
 install_for_dev:
-	$(DC) exec $(PHP_SVC) composer require --dev $(ARGS)
+	$(EXEC) composer require --dev $(ARGS)
 
 ## Install Symfony skeleton into the project
 ## Usage: make install_Symfony
@@ -452,7 +432,7 @@ install_Symfony:
 ## Remove a package
 ## Usage: make remove symfony/mailer
 remove:
-	$(DC) exec $(PHP_SVC) composer remove $(ARGS)
+	$(EXEC) composer remove $(ARGS)
 
 
 # =============================================================================
@@ -464,22 +444,22 @@ remove:
 ## Update all dependencies (respects version constraints)
 ## Usage: make update_dependencies
 update_dependencies:
-	$(DC) exec $(PHP_SVC) composer update
+	$(EXEC) composer update
 
 ## Upgrade all dependencies (includes transitive dependencies)
 ## Usage: make upgrade_dependencies
 upgrade_dependencies:
-	$(DC) exec $(PHP_SVC) composer update --with-all-dependencies
+	$(EXEC) composer update --with-all-dependencies
 
 ## Update a specific package
 ## Usage: make update symfony/mailer
 update:
-	$(DC) exec $(PHP_SVC) composer update $(ARGS)
+	$(EXEC) composer update $(ARGS)
 
 ## Upgrade a specific package (includes its dependencies)
 ## Usage: make upgrade symfony/mailer
 upgrade:
-	$(DC) exec $(PHP_SVC) composer update --with-all-dependencies $(ARGS)
+	$(EXEC) composer update --with-all-dependencies $(ARGS)
 
 
 # =============================================================================
@@ -491,12 +471,12 @@ upgrade:
 ## Convert YAML config to PHP (dry run)
 ## Usage: make convert_YAML_to_PHP_files_dry_run
 convert_YAML_to_PHP_files_dry_run:
-	$(DC) exec $(PHP_SVC) vendor/bin/config-transformer --dry-run
+	$(EXEC) vendor/bin/config-transformer --dry-run
 
 ## Convert YAML config to PHP
 ## Usage: make convert_YAML_to_PHP_files
 convert_YAML_to_PHP_files:
-	$(DC) exec $(PHP_SVC) vendor/bin/config-transformer
+	$(EXEC) vendor/bin/config-transformer
 
 
 # =============================================================================
@@ -508,12 +488,12 @@ convert_YAML_to_PHP_files:
 ## Check code style (dry run)
 ## Usage: make format_PHP_files_dry_run
 format_PHP_files_dry_run:
-	$(DC) exec $(PHP_SVC) composer cs-dry
+	$(EXEC) composer cs-dry
 
 ## Fix code style
 ## Usage: make format_PHP_files
 format_PHP_files:
-	$(DC) exec $(PHP_SVC) composer cs-fix
+	$(EXEC) composer cs-fix
 
 
 # =============================================================================
@@ -524,7 +504,7 @@ format_PHP_files:
 ## Usage: make vendor/bin/phpstan analyse src
 ##        make vendor/bin/rector process
 vendor/bin/%:
-	$(DC) exec $(PHP_SVC) $@ $(ARGS)
+	$(EXEC) $@ $(ARGS)
 
 
 # =============================================================================
@@ -536,7 +516,7 @@ vendor/bin/%:
 ## Open a bash shell in the PHP container
 ## Usage: make shell
 shell:
-	$(DC) exec $(PHP_SVC) bash
+	$(EXEC) bash
 
 ## Open a MySQL shell
 ## Usage: make shell_mysql

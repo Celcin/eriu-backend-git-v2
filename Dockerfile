@@ -35,6 +35,7 @@ FROM dunglas/frankenphp:1-php8.5 AS frankenphp_upstream
 FROM frankenphp_upstream AS frankenphp_base
 
 WORKDIR /app
+ENV PATH="${PATH}:/app/vendor/bin"
 
 # -----------------------------------------------------------------------------
 # SYSTEM DEPENDENCIES
@@ -265,7 +266,8 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 #   opcache.jit_buffer_size=0
 #
 #   ; === Optional: Preloading ===
-#   ; Symfony generates config/preload.php via Flex. Uncomment when ready:
+#   ; Preloading compiles commonly used classes into OPcache at startup.
+#   ; See config/preload.php. Uncomment when ready:
 #   ; opcache.preload=/app/config/preload.php
 #   ; opcache.preload_user=www-data
 
@@ -277,10 +279,10 @@ COPY --link frankenphp/conf.d/app.prod.ini $PHP_INI_DIR/conf.d/
 
 # Step 1: Copy only Composer metadata files. This ensures the dependency
 # installation layer is cached independently of application source code.
-# The layer will only rebuild when composer.json, composer.lock, or
-# symfony.lock change - not on every source file edit.
+# The layer will only rebuild when composer.json or composer.lock change -
+# not on every source file edit.
 
-COPY --link composer.json composer.lock symfony.lock ./
+COPY --link composer.json composer.lock ./
 
 # Step 2: Install production dependencies without generating the autoloader.
 # Source code has not been copied yet, so class mapping would be incomplete.
@@ -300,23 +302,21 @@ RUN --mount=type=cache,target=/root/.composer/cache \
 
 COPY --link --exclude=frankenphp/ . .
 
-# Step 4: Generate the optimized autoloader, compile environment variables,
-# run post-install hooks and warm the Symfony cache. This must happen after
-# source code is copied so the class map and cache are complete.
+# Step 4: Generate the optimized autoloader, compile environment variables
+# and warm the Symfony cache. This must happen after source code is copied
+# so the class map and cache are complete.
 #
 # Operations in order:
 #   1. Create var/ directories if absent
 #   2. Generate classmap-authoritative autoloader (skips PSR-4 filesystem scans)
 #   3. Compile .env files into an optimized PHP file (.env.local.php)
-#   4. Execute Symfony Flex post-install recipes
-#   5. Pre-compile the Symfony dependency injection container and route matcher
-#   6. Set directory permissions for the non-root runtime user
+#   4. Pre-compile the Symfony dependency injection container and route matcher
+#   5. Set directory permissions for the non-root runtime user
 
 RUN set -eux; \
     mkdir -p var/cache var/log; \
     composer dump-autoload --classmap-authoritative --no-dev; \
     composer dump-env prod; \
-    composer run-script --no-dev post-install-cmd; \
     bin/console cache:warmup --env=prod --no-debug; \
     chmod -R 755 var; \
     chown -R www-data:www-data var

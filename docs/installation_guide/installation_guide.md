@@ -80,6 +80,19 @@ m() {
 source ~/.bashrc
 
 
+## 03-04: TROUBLESHOOTING
+
+• if the make command files with errors such as "directory xy not found", try the following:
+• you should see all your project root files/folders
+
+m shell
+ls /app/
+
+• if the content of app/ is not found or empty, shutdown and restart Docker Desktop itself, not just the containers
+• if the command still fails, recreate the containers with m rebuild_project_with_cleared_cache
+• if the command still fails, update Docker and try the steps above again
+
+
 # 04: FIX LINUX FILE SYSTEM PERMISSIONS
 
 m change_file_ownership			➤ fix the file ownership errors inside WSL
@@ -457,25 +470,158 @@ You should see a 404 or welcome page (Symfony is running, just no routes yet)
 
 
 # 13: REMOVE ALL BLOAT DEPENDENCIES
+
+## 13-01: SHOW ALL INSTALLED PACKAGES
+
+m show_direct_packages
+
+## 13-02: REMOVE BLOAT PACKAGES
+
+• remove all packages that are NOT listed under SYSTEM inside "dependency_list.md"
+• keep in mind that removing symfony/flex has the consequence that config/packages/*.php cobfig files are NOT generated automatically anymore
+• for a new project, keep flex and remove it after editing all config files or create the config files manually
+• same goes for symfony/yaml: as long as you still have config/*.yaml files, keep it; remove it after turning all YAML config files to PHP config files
+
+
 # 14: INSTALL ALL REQUIRED DEPENDENCIES & UPDATE THEM TO THE NEWEST VERSION
 
+• this section covers installing all required dependencies, configuring caching, converting configs to PHP and finalizing the setup
+• important: follow these steps in order
+• config-transformer should run AFTER all dependencies are installed because Symfony Flex creates YAML config files when packages are installed
 
 
+## 14-01: UNDERSTANDING COMPOSER VERSION CONSTRAINTS
+
+When you run »m install package_name«, Composer:
+• resolves the latest compatible version
+• adds the dependency to »composer.json« with a »^« (caret) constraint by default
+• for example, installing version 1.5.3 writes "package": "^1.5.3"
+
+The »^« constraint allows updates within the same major version:
+• ^1.5.3 allows 1.5.3 >= package <= 2.0.0
+• ^2.0 allows 2.0.0 >= package <= 3.0.0
+
+### other constraint options
+
+composer require vendor/package:^1.0		# allows 1.x but not 2.x
+composer require vendor/package:~1.5		# allows >=1.5.0 and <1.6.0
+composer require vendor/package:^1.0|^2.0	# allows 1.x or 2.x
+composer require vendor/package:*		# any version (not recommended)
 
 
+## 14-02: INSTALL ALL DEPENDENCIES
+
+### SYMFONY (CORE)
+
+m install symfony/console
+m install symfony/dotenv
+m install symfony/framework-bundle
+m install symfony/runtime
+m install symfony/yaml
+
+### DOCTRINE
+
+m install doctrine/orm
+m install doctrine/doctrine-bundle
+
+### API HANDLING AND CONFIGURATION
+
+m install api-platform/core
+
+### AUTHENTICATION AND USER ROLE MANAGEMENT
+
+m install lexik/jwt-authentication-bundle
+m install gesdinet/jwt-refresh-token-bundle
+
+### IMAGE PROCESSING, FILE UPLOADING & DOCUMENT MANAGEMENT
+
+m install intervention/image
+m install vich/uploader-bundle
+m install league/flysystem-bundle
+
+### DYNAMIC PDF GENERATION
+
+m install sensiolabs/gotenberg-bundle
+
+### ERROR TRACKING
+
+m install sentry/sentry-symfony
+
+### EMAIL
+
+m install symfony/mailer
+
+### AUTO-FORMATTER & REFACTORING
+
+m install_for_dev rector/rector
+m install_for_dev friendsofphp/php-cs-fixer
+m install_for_dev symplify/config-transformer
+
+### STATIC ANALYSIS
+
+m install_for_dev phpstan/phpstan
+
+### EMAIL TESTING
+
+m install_for_dev zenstruck/mailer-test
 
 
+## 14-03: UPDATE ALL DEPENDENCIES TO THE NEWEST VERSION
 
+### see outdated packages
 
+m show_outdated_packages
 
+### update all packages to the newest versions within constraints
 
+m update_dependencies
 
+### to also update to new major versions (may require code changes!)
+
+m upgrade_dependencies
 
 
 # 15: CONVERT ALL YAML CONFIG FILES TO PHP CONFIG FILES
+
+## 15-01: PREVIEW CHANGES WITHOUT ACTUALLY CHANGING THE FILE FORMAT YET
+
+m convert_YAML_to_PHP_files_dry_run
+
+## 15-02: CONVERT ALL YAML CONFIG FILES TO PHP CONFIG FILES
+
+m convert_YAML_to_PHP_files
+
+
 # 16: AUTO-FORMAT ALL JSON FILES ACCORDING TO THE STYLE GUIDE
+
+## 16-01: FORMAT ALL JSON FILES
+
+powershell -ExecutionPolicy Bypass -File "./bin/PowerShell/format_JSON.ps1" -All
+
+## 16-02: FORMAT ONE SPECIFIC JSON FILE
+
+powershell -ExecutionPolicy Bypass -File "./bin/PowerShell/format_JSON.ps1" "path/to/JSON"
+
+
 # 17: AUTO-FORMAT ALL PHP FILES ACCORDING TO THE STYLE GUIDE
+
+## 17-01: DRY RUN
+
+m format_PHP_files_dry_run
+
+## 17-02: FORMAT ALL PHP FILES
+
+m format_PHP_files
+
+
 # 18: CONFIGURE DOCTRINE ORM 3.6
+
+
+
+
+
+
+
 # 19: CONFIGURE CACHE WITH PHPREDIS
 # 20: CONFIGURE MYSQL
 # 21: CONFIGURE MAILPIT

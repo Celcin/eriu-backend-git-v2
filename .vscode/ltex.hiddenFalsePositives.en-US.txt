@@ -1,0 +1,2 @@
+{"rule":"ENGLISH_WORD_REPEAT_RULE","sentence":"^\\QMYSQL_DATABASE\t\t\tDatabase name to create on first run MYSQL_USER\t\t\tApplication database user MYSQL_PASSWORD\t\t\tPassword for MYSQL_USER MYSQL_ROOT_PASSWORD\t\tMySQL root password DATABASE_URL\t\t\tFull Doctrine DBAL DSN string\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_RULE","sentence":"^\\QMYSQL_DATABASE\t\t\tDatabase name to create on first run MYSQL_USER\t\t\tApplication database user MYSQL_PASSWORD\t\t\tPassword for MYSQL_USER MYSQL_ROOT_PASSWORD\t\tMySQL root password DATABASE_URL\t\t\tFull Doctrine DBAL DSN string\\E$"}

@@ -286,6 +286,12 @@ services:
       TZ: ${TZ:-UTC}
     volumes:
       - mailpit_data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - eriu-network
 

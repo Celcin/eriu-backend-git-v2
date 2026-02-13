@@ -305,7 +305,9 @@
 			"vscode",
 			"json",
 			"gitignore",
-			"GITIGNORE"
+			"GITIGNORE",
+			"MAILPIT",
+			"Mailpit"
 		],
 		"de":
 		[
@@ -315,4 +317,31 @@
 			"phpredis"
 		]
 	},
+
+	"files.exclude":
+	{
+		"bin": true,
+		"config": true,
+		"frankenphp": true,
+		"gotenberg": true,
+		"migrations": true,
+		"public": true,
+		"src": true,
+		"var": true,
+		"vendor": true,
+		"symfony.lock": true,
+		"phpstan.dist.neon": true,
+		"Dockerfile": true,
+		".claude": true,
+		"docker": true,
+		".gitignore": true,
+		".editorconfig": true,
+		"compose.yaml": true,
+		"composer.json": true,
+		"composer.lock": true,
+		"Makefile": true,
+		".php-cs-fixer.cache": true,
+		".php-cs-fixer.dist.php": true,
+		"docs": true,
+	}
 }

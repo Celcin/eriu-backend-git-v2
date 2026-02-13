@@ -1,0 +1,14 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
+return static function (ContainerConfigurator $container): void
+{
+	$container->extension('lexik_jwt_authentication', [
+		'secret_key' => '%env(resolve:JWT_SECRET_KEY)%',
+		'public_key' => '%env(resolve:JWT_PUBLIC_KEY)%',
+		'pass_phrase' => '%env(JWT_PASSPHRASE)%',
+	]);
+};
